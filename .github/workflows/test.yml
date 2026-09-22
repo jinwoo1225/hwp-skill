@@ -66,6 +66,10 @@ jobs:
               print(txt[:200])
           "
 
+      - name: Run e2e tests (unittest)
+        run: |
+          python -m unittest discover tests/ -v
+
       - name: Upload HWPX artifact
         uses: actions/upload-artifact@v4
         with:

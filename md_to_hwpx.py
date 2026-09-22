@@ -238,21 +238,20 @@ def make_paragraph_xml(text, style="p"):
 
 
 def find_template(args_template):
-    """사용자 지정 또는 기본 템플릿 결정."""
-    candidates = []
+    """사용자 지정 또는 기본 템플릿 결정.
+
+    --template으로 명시한 경로는 무조건 우선 (없으면 None 반환 → main에서 error).
+    --template 미지정 시 기본 후보 자동 탐색.
+    """
     if args_template:
-        candidates.append(args_template)
-    # 기본 후보 (사용자 워크스페이스 흔한 경로)
-    candidates.extend(
-        [
-            os.path.expanduser(
-                "~/Downloads/아카이브/제안요청서_.hwpx"
-            ),
-            os.path.expanduser("~/Downloads/제안요청서_.hwpx"),
-            os.path.expanduser("~/Downloads/입찰공고서_.hwpx"),
-            os.path.expanduser("~/Documents/templates/hwp/blank.hwpx"),
-        ]
-    )
+        # 사용자가 명시한 템플릿은 fallback 없이 그대로 사용
+        return args_template if os.path.exists(args_template) else None
+    candidates = [
+        os.path.expanduser("~/Downloads/아카이브/제안요청서_.hwpx"),
+        os.path.expanduser("~/Downloads/제안요청서_.hwpx"),
+        os.path.expanduser("~/Downloads/입찰공고서_.hwpx"),
+        os.path.expanduser("~/Documents/templates/hwp/blank.hwpx"),
+    ]
     for c in candidates:
         if c and os.path.exists(c):
             return c
