@@ -90,6 +90,92 @@ GitHub Actions에서 **Ubuntu / macOS / Windows × Python 3.9/3.11/3.12** matrix
 
 [`.github/workflows/test.yml`](.github/workflows/test.yml) 참조.
 
+## 다른 에이전트 설치 (Claude Code / Codex / Hermes)
+
+다른 AI 에이전트가 이 도구를 자동으로 호출하도록 **skill 등록**.
+
+### 빠른 설치 (자동)
+
+#### macOS / Linux / WSL
+
+```bash
+# 기본: Claude Code + Codex + Hermes 모두 등록
+curl -fsSL https://raw.githubusercontent.com/jinwoo1225/hwp-skill/master/install.sh | bash
+
+# 특정 에이전트만
+HWP_AGENTS=claude-code bash <(curl -fsSL https://raw.githubusercontent.com/jinwoo1225/hwp-skill/master/install.sh)
+
+# 설치 위치 변경
+HWP_SKILL_DIR=/opt/hwp-skill bash <(curl -fsSL https://raw.githubusercontent.com/jinwoo1225/hwp-skill/master/install.sh)
+```
+
+또는 로컬 clone 후:
+
+```bash
+./install.sh
+```
+
+#### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/jinwoo1225/hwp-skill/master/install.bat -outfile install.bat
+.\install.bat
+```
+
+### 수동 설치
+
+```bash
+# 1. clone
+git clone https://github.com/jinwoo1225/hwp-skill.git ~/.local/share/hwp-skill
+
+# 2. PATH 추가 (~/.zshrc 또는 ~/.bashrc)
+echo 'export PATH="$HOME/.local/share/hwp-skill:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# 3. 에이전트별 skill 등록
+# Claude Code
+mkdir -p ~/.claude/skills/hwp-skill
+cat > ~/.claude/skills/hwp-skill/SKILL.md <<'EOF'
+# hwp-skill
+md → HWPX 변환 도구. python3 md_to_hwpx.py input.md output.hwpx
+EOF
+ln -sf ~/.local/share/hwp-skill/md_to_hwpx.py ~/.claude/skills/hwp-skill/
+
+# Codex
+mkdir -p ~/.codex/skills/hwp-skill
+cat > ~/.codex/skills/hwp-skill/SKILL.md <<'EOF'
+# hwp-skill
+md → HWPX 변환. python3 ~/.local/share/hwp-skill/md_to_hwpx.py input.md output.hwpx
+EOF
+ln -sf ~/.local/share/hwp-skill/md_to_hwpx.py ~/.codex/skills/hwp-skill/
+
+# Hermes
+mkdir -p ~/.hermes/skills/hwp-skill
+cat > ~/.hermes/skills/hwp-skill/SKILL.md <<'EOF'
+# hwp-skill
+md → HWPX 변환. python3 ~/.local/share/hwp-skill/md_to_hwpx.py input.md output.hwpx
+EOF
+ln -sf ~/.local/share/hwp-skill/md_to_hwpx.py ~/.hermes/skills/hwp-skill/
+```
+
+### 설치 결과
+
+각 에이전트는 다음을 알게 됨:
+
+- **위치**: `~/.local/share/hwp-skill/`
+- **사용법**: `python3 md_to_hwpx.py input.md output.hwpx`
+- **마크다운 확장**:
+  - `**RED:텍스트**`, `**BLUE:텍스트**` → 색상 매핑
+  - `<span style="color:red">...</span>` → 색상 매핑
+  - `**#FF0000:텍스트**` → 16진수 색상
+
+### 환경 변수
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `HWP_SKILL_DIR` | `~/.local/share/hwp-skill` | 설치 위치 |
+| `HWP_AGENTS` | `claude-code,codex,hermes` | 등록할 에이전트 (comma-separated) |
+
 ## 지원 마크다운
 
 | 입력 | 변환 결과 |

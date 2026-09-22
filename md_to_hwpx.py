@@ -122,6 +122,74 @@ def strip_inline_html(text):
     return text
 
 
+def extract_color(text):
+    """마크다운/HTML에서 색상 추출.
+
+    지원 패턴:
+    - **RED:텍스트** 또는 **RED[텍스트]**  (RED = red/blue/green/yellow/orange/purple/cyan/magenta/FF0000 등)
+    - <span style="color:red">...</span>  (HTML inline)
+    - <span style="color:#ff0000">...</span>
+
+    Returns:
+        (cleaned_text, hex_color) — 예: ("텍스트", "FF0000"). 색상 없으면 (text, None).
+    """
+    # 1. **RED:텍스트** / **RED[텍스트]** 패턴
+    color_names = {
+        "RED": "FF0000",
+        "BLUE": "0000FF",
+        "GREEN": "008000",
+        "YELLOW": "CCCC00",
+        "ORANGE": "FF8C00",
+        "PURPLE": "800080",
+        "CYAN": "008B8B",
+        "MAGENTA": "FF00FF",
+        "GRAY": "808080",
+        "GREY": "808080",
+        "BLACK": "000000",
+        "WHITE": "FFFFFF",
+        "PINK": "FF69B4",
+    }
+    m = re.match(
+        r"^\*\*(RED|BLUE|GREEN|YELLOW|ORANGE|PURPLE|CYAN|MAGENTA|GRAY|GREY|BLACK|WHITE|PINK)"
+        r"[:\[]\s*(.+?)\s*[\]\*]+\s*$",
+        text,
+        re.DOTALL,
+    )
+    if m:
+        color_name = m.group(1).upper()
+        inner_text = m.group(2)
+        return inner_text, color_names.get(color_name)
+
+    # 2. **#FF0000:텍스트** (hex 직접)
+    m = re.match(r"^\*\*#([0-9a-fA-F]{6})[:\[]\s*(.+?)\s*[\]\*]+\s*$", text, re.DOTALL)
+    if m:
+        return m.group(2), m.group(1).upper()
+
+    # 3. HTML <span style="color:...">
+    m = re.search(
+        r'<span\s+style="[^"]*color:\s*(?:#?([0-9a-fA-F]{3,6}))[^"]*"[^>]*>(.+?)</span>',
+        text,
+        re.DOTALL,
+    )
+    if m:
+        raw_color = m.group(1)
+        # 3글자 hex → 6글자 확장
+        if len(raw_color) == 3:
+            raw_color = "".join(c * 2 for c in raw_color)
+        return m.group(2), raw_color.upper()
+
+    # 4. color 이름 (HTML) — red, blue 등
+    m = re.search(
+        r'<span\s+style="[^"]*color:\s*(red|blue|green|yellow|orange|purple|cyan|magenta|gray|grey|black|white|pink)\b[^"]*"[^>]*>(.+?)</span>',
+        text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        return m.group(2), color_names.get(m.group(1).upper())
+
+    return text, None
+
+
 def xml_escape(text):
     """XML 특수문자 이스케이프."""
     return (
@@ -134,7 +202,9 @@ def xml_escape(text):
 
 
 def make_paragraph_xml(text, style="p"):
-    """(text, style) → HWPX paragraph XML."""
+    """(text, style) → HWPX paragraph XML. 색상 매핑 포함."""
+    # 색상 추출 (extract_color가 cleaned_text와 color 반환)
+    text, color = extract_color(text)
     text = strip_inline_html(text)
     text = xml_escape(text)
 
@@ -153,6 +223,14 @@ def make_paragraph_xml(text, style="p"):
         char_pr = "12"
     elif style in ("list", "list-num"):
         char_pr = "13"
+
+    if color:
+        # inline color — 한글 일부 버전에서 인식. 미인식 시 fallback으로 header.xml charPr 정의 추가 필요.
+        return (
+            f'<hp:p><hp:run>'
+            f'<hp:rPr><hp:color val="#{color}"/></hp:rPr>'
+            f'<hp:t>{text}</hp:t></hp:run></hp:p>'
+        )
 
     return (
         f'<hp:p><hp:run charPrIDRef="{char_pr}"><hp:t>{text}</hp:t></hp:run></hp:p>'
