@@ -1,0 +1,74 @@
+name: test
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.11', '3.12']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Make script executable (Unix only)
+        if: runner.os != 'Windows'
+        run: chmod +x md_to_hwpx.py
+
+      - name: Verify Python version
+        run: |
+          python --version
+          python -c "import sys; assert sys.version_info >= (3, 7), 'Python 3.7+ required'"
+
+      - name: Convert example.md → example.hwpx
+        run: |
+          python md_to_hwpx.py examples/example.md examples/output.hwpx
+
+      - name: Verify output HWPX (ZIP integrity)
+        run: |
+          python -c "
+          import zipfile
+          with zipfile.ZipFile('examples/output.hwpx', 'r') as zf:
+              names = zf.namelist()
+              assert 'Contents/section0.xml' in names, 'section0.xml missing'
+              assert 'Preview/PrvText.txt' in names, 'PrvText missing'
+              content = zf.read('Contents/section0.xml').decode('utf-8')
+              assert '<hs:sec' in content, 'root <hs:sec> missing'
+              assert '<hp:p>' in content, 'no paragraphs'
+              assert '예제: 회의 결과 보고서' in content or 'hwp-skill' in content, 'expected text missing'
+              print(f'OK: {len(names)} files, {len(content)} bytes section0.xml')
+          "
+
+      - name: Verify Preview text
+        run: |
+          python -c "
+          import zipfile
+          with zipfile.ZipFile('examples/output.hwpx', 'r') as zf:
+              txt = zf.read('Preview/PrvText.txt').decode('utf-8')
+              assert len(txt) > 100, 'preview too short'
+              print(f'OK: preview {len(txt)} chars')
+              print('First 200 chars:')
+              print(txt[:200])
+          "
+
+      - name: Upload HWPX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hwpx-output-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: examples/output.hwpx
+          if-no-files-found: error

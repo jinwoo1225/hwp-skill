@@ -12,31 +12,83 @@
 
 ## 설치
 
+### macOS / Linux / WSL
+
 ```bash
 git clone https://github.com/jinwoo1225/hwp-skill.git
 cd hwp-skill
-chmod +x md_to_hwpx.py
+chmod +x md_to_hwpx.py run.sh
 ```
+
+### Windows (PowerShell / cmd)
+
+```powershell
+git clone https://github.com/jinwoo1225/hwp-skill.git
+cd hwp-skill
+```
+
+> **Python 필수**: [python.org](https://www.python.org/downloads/) 에서 3.9+ 설치. 설치 시 "Add Python to PATH" 체크.
+
+### 의존성
+
+표준 라이브러리만 사용 — **추가 pip install 불요**.
 
 ## 사용법
 
-### 기본
+### macOS / Linux / WSL
 
 ```bash
+# 직접 호출
 python3 md_to_hwpx.py input.md output.hwpx
+
+# wrapper 사용
+./run.sh input.md output.hwpx
 ```
 
-### 템플릿 지정
+### Windows
+
+```powershell
+# 직접 호출 (python 또는 py 명령)
+python md_to_hwpx.py input.md output.hwpx
+py md_to_hwpx.py input.md output.hwpx
+
+# wrapper 사용
+run.bat input.md output.hwpx
+```
+
+### 템플릿 지정 (모든 OS)
 
 ```bash
 python3 md_to_hwpx.py input.md output.hwpx --template my_template.hwpx
 ```
 
-### Windows native
+### Windows 인코딩 주의
 
-```cmd
+Windows 기본 콘솔 인코딩(CP949)으로 한글 경로/내용이 깨지면:
+
+```powershell
+# PowerShell — UTF-8 강제
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:PYTHONIOENCODING = "utf-8"
 python md_to_hwpx.py input.md output.hwpx
 ```
+
+```cmd
+# cmd
+set PYTHONIOENCODING=utf-8
+python md_to_hwpx.py input.md output.hwpx
+```
+
+## CI/CD
+
+GitHub Actions에서 **Ubuntu / macOS / Windows × Python 3.9/3.11/3.12** matrix 자동 테스트:
+
+- ✅ ZIP 무결성 검증
+- ✅ section0.xml 파싱 검증
+- ✅ Preview/PrvText.txt 검증
+- ✅ HWPX 아티팩트 업로드
+
+[`.github/workflows/test.yml`](.github/workflows/test.yml) 참조.
 
 ## 지원 마크다운
 

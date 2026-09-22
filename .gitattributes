@@ -1,0 +1,17 @@
+# 줄바꿈 자동 정규화
+* text=auto eol=lf
+
+# 스크립트는 항상 LF
+*.py text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# 문서
+*.md text eol=lf
+*.txt text eol=lf
+
+# 바이너리
+*.hwpx binary
+*.png binary
+*.jpg binary
+*.pdf binary
